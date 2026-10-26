@@ -1,90 +1,105 @@
-# Bill Audit (hospital-bill-checker)
+# Bill Audit (hospital bill checker)
 
-Upload an itemized hospital bill (a PDF or a photo), see which charges look duplicated, bundled or too high, and get questions and a letter to send to the billing office. Create a free account to save your scans and come back to them later.
-It is a learning aid, not legal, medical or financial advice. A flag means "worth asking about", not "wrong".
+Upload an itemised hospital bill (PDF or picture). See which charges might be duplications, bundlings or overcharging. Get some questions to ask and a letter to send to the billing office. Create a free account to save your scans.
+This is a learning tool. It does not provide legal, medical or financial advice. The flags don't indicate that something is wrong, just that it's worth asking about.
 
-## Run it
+## How to run
 
-Requires Python 3.9+.
+Python 3.9+
 
 ```bash
 python -m venv .venv
-source .venv/bin/activate            # Windows: .venv\Scripts\activate
+source .venv/bin/activate # Windows .venv\Scripts\activate
 pip install -r server/requirements.txt
-cp .env.example .env                 # optional: add keys
+cp .env.example .env # optional: include keys
 python server/app.py
 ```
 
-Open http://localhost:8000. The site must be opened through the server (not by double-clicking the HTML files) because the pages call `/api/...` and load `/css`, `/js` and `/assets`.
+Go to http://localhost:8000. The site needs to be run through the server, and not opened directly from the HTML files. This is because all the pages use the /api/ routes, as well as loading CSS, JS and assets.
 
-**After you change any file in `server/`, stop the server (Ctrl+C) and start it again.** It does not reload by itself. Forgetting this is the most common reason a new feature seems to do nothing.
+If you make any changes to files inside the server folder, you will need to stop the server (Ctrl+C) and restart. This is the most common reason new features aren't working.
 
-### Accounts and saved scans
+## Accounts and saving scans
 
-- Click **Sign in** in the header, then **Create account** (email and a password of at least 8 characters).
-- While signed in, every scan saves the original file, the results, your answers and your letter selections. Open them any time from **My scans**, change them, make a new letter, or start a new scan.
-- Scanning without an account still works. Nothing is saved on the server in that case.
-- Everything is stored in `data/mediscope.db` (created automatically, along with `data/secret.key`). Add `data/` to your `.gitignore`, and back it up if you care about the scans.
-- Passwords are stored hashed, never as plain text. Saved bill files are **not encrypted** on disk, so only run this on a computer you trust.
-- You can delete a scan, or your whole account, from the My scans page.
-- If you serve the site over HTTPS, set `COOKIE_SECURE=1` in `.env`.
+Click Sign in in the header and create an account using an email address and 8+ character password.
+While logged in your scans will be stored. Each scan will have the original document, results, answers and letter choices saved. You can view these at any point by going to My scans. You can edit these, create a new letter or start a new scan.
+You can still scan without an account. However, nothing will be stored on the server.
+All data is stored in data/mediscope.db (automatically created). You should add data/ to your .gitignore. If you want to keep your scans backed up you can do so. Passwords are stored hashed. The bill documents are not encrypted. Run this on a computer you trust.
+You can delete individual scans or your entire account from My scans.
+If you host this site with HTTPS set COOKIE_SECURE=1 in your .env.
 
-### Camera
+## Camera
 
-**Take photo** opens a live camera view in the browser. Browsers only allow this on `http://localhost` or HTTPS. On any other address the button falls back to your phone's own camera picker. Photos are read with OCR (see below).
+Opening the Take a photo option will start a live camera feed. This is only allowed to happen on http://localhost or HTTPS in browsers. If you try to open it on any other address it will default back to your phone's camera selector. The photos will be read using OCR (see below).
+## Taking a photo / scanning a PDF (optional)
 
-### Photos and scanned PDFs (optional)
+Text based PDFs will work without any additional setup. If you're scanning a photo or a scanned PDF you'll need to set up OCR.
 
-PDFs with selectable text work with no extras. Photos and scanned PDFs need OCR:
+Install Tesseract. Mac: brew install tesseract, Ubuntu: sudo apt install tesseract-ocr, Windows: UB Mannheim Installer. Then in your .env set TESSERACT_CMD.
+If scanning a scanned PDF also install Poppler. Mac: brew install poppler, Ubuntu: sudo apt install poppler-utils.
 
-- Install Tesseract: macOS `brew install tesseract`, Ubuntu `sudo apt install tesseract-ocr`, Windows: the UB Mannheim installer, then set `TESSERACT_CMD` in `.env`.
-- For scanned PDFs also install Poppler: macOS `brew install poppler`, Ubuntu `sudo apt install poppler-utils`.
+Otherwise you will get a message on the scan page saying you need a text based PDF.
 
-Without these, the scan page shows a message asking for a text PDF.
+## AI summary + chat (optional)
 
-### AI overview and chat (optional)
+Set ANTHROPIC_API_KEY in your .env. When viewing the results page you will see an AI summary of the flagged charges. There is also a free text chat box under "did this happen?". Only the flagged charges (code, description, date, amount, quantity and flag type) and any text you put in the chat box will be sent. Your entire bill will not be sent. If no API key is given the summary will be made using rules. The chat box will only have Yes/No/Not sure buttons.
 
-Set `ANTHROPIC_API_KEY` in `.env`. The results page then offers an AI overview of the flagged charges and a free-text box in the "did this happen?" chat. Only the flagged line items (code, description, date, amount, quantity, flag type) and what the user types are sent. The full bill is not. Without a key, the overview is written by rules and the chat uses Yes / No / Not sure buttons only.
-
-## Structure
-
+## File structure
 ```
-html/index.html  scan.html  results.html  dispute.html  learn.html  aboutpg.html
-html/login.html  scans.html
-css/style.css
-javascript/main.js       shared helpers, storage, sign-in state, header and footer
-javascript/scanner.js    upload, camera, progress, calls /api/scan
-javascript/detector.js   duplicate, upcoding, unbundling and quantity rules; confidence; overview
-javascript/results.js    flagged charges, feedback, overview, chat
-javascript/dispute.js    questions, letter tones, email and report actions
-assets/logo.svg
-server/                  app.py (routes, accounts, saved scans), billparser.py, ocr.py, ai.py
-data/                    created at first run: mediscope.db, secret.key (do not commit)
+
+html/
+index.html
+scan.html
+results.html
+dispute.html
+learn.html
+aboutpg.html
+login.html
+scans.html
+css/
+style.css
+javascript/
+main.js # Shared functions, storage, logged in status, header and footer
+scanner.js # Upload, camera, progress bar, sends to /api/scan
+detector.js # Duplicate, upcoding, unbundling, quantity rules, confidence score
+results.js # Flagged charges, feedback, summary, chat
+dispute.js # Questions, letter tone, send email/report
+assets/
+logo.svg
+server/
+app.py # Routes, accounts, storing scans
+billparser.py
+ocr.py
+ai.py
+data/ # Automatically created on first run
+mediscope.db
+secret.key
 .env.example
 ```
 
 ## How it works
 
-1. `/api/scan` extracts text (PDF text layer, else OCR) and `billparser.py` pulls out date, code, description, quantity and amount per line. If you are signed in, the original file is also saved to your account.
-2. `detector.js` runs the rules in the browser and returns flagged items with a starting confidence.
-3. Confidence adapts: each "Good catch" / "Not an issue" click is stored in `localStorage` and counted as a vote against the rule's starting score for that flag type. The patient's Yes / No answers then shift it.
-4. The dispute page builds questions and a letter (polite, firm or formal) from the charges the user selected, and the profile fields they fill in.
-5. "Send to hospital" and "Email me a summary" open the user's email app. "Report to CMS / HHS" copies the summary and opens the HHS-OIG fraud report page. Nothing is sent automatically.
+1. The /api/scan endpoint extracts text from the document (text layer of PDF, otherwise uses OCR). This is parsed by billparser.py to extract the date, code, description, quantity and amount of each line. If you're logged in the original document will be saved to your account.
+2. The detector.js runs the rules and returns the flagged charges along with an initial confidence.
+3. Confidence is dynamic. Every time you click Good catch/Not an issue it will be added to localStorage. This will act as a vote against the initial confidence of the rule. The patient's answers (Yes/No) will affect their confidence.
+4. The dispute page will generate questions and a letter (polite, firm or formal) based on the charges you've flagged. This will also use the profile information you've entered.
+5. Send to hospital and "Email me a summary" will open your email app. Report to CMS / HHS will copy the summary and take you to the HHS-OIG fraud reporting page. Nothing will be automatically sent.
 
 ## Privacy
+No account:
 
-Without an account: the server reads each upload while it works and does not store it. Scan results live in `sessionStorage`. Name, hospital, emails, feedback and the running total saved live in `localStorage`.
+The server will temporarily read the uploaded file. It is not stored. The results are stored in sessionStorage. Your name, hospital, emails, feedback and running total are stored in localStorage.
+Account:
 
-With an account: the original file, scan results, your answers, your email, a hashed password and the name, hospital and email details you type for the letter are stored in `data/mediscope.db`. Feedback and the running total saved stay in `localStorage` on the device.
+The original document, scan results, answers, email address, hashed password and the details you type into the profile (name, hospital, email) are stored in data/mediscope.db. Feedback and running total are stored in localStorage.
 
 ## Troubleshooting
 
-- **"The server doesn't have the account feature yet"** on the sign-in page: `server/app.py` is the old version, or the server wasn't restarted after you replaced it.
-- **"Can't reach the server"**: the server isn't running, or you opened the page from a different address than the one it prints.
-- **"Server error"**: the real error is printed in the terminal window running `python server/app.py`.
+Sign in page says "The server does not currently support accounts": The server/app.py is old or you haven't restarted the server.
+Can't connect to server: Server isn't running or you've opened the page on a different address.
+Server error: Real error is shown in the terminal window where you ran python server/app.py.
+## Limitations
 
-## Known limits
-
-- The line parser expects one charge per line with a CPT/HCPCS code and a trailing amount. Unusual layouts may be missed.
-- The rules are a small hand-written set, not the federal code-pair tables. Savings figures are rough estimates.
-- The server is meant for local use. Before putting it on the internet add HTTPS (and set `COOKIE_SECURE=1`), stronger rate limiting, encryption of saved files, and request logging that excludes bill content.
+Line parser assumes there is one charge per line, containing a CPT/HCPCS code and ending with an amount. May miss unusual formats.
+Rules are a small number of manually created rules. Not using federal code pair tables. Savings are rough estimates.
+The server is intended to be run locally. If you plan to host it online you should add HTTPS (set COOKIE_SECURE=1), more rate limiting, encrypted files and log requests but not bill information.
